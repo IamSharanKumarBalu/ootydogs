@@ -94,6 +94,18 @@ exports.getSingleListing = asyncErrorHandler(async (req, res, next) => {
 
 // ─── AUTHENTICATED (OWNER) ───────────────────────────────────────────────────
 
+exports.getMyListingBySlug = asyncErrorHandler(async (req, res, next) => {
+    const listing = await PetListing.findOne({ slug: req.params.slug, owner: req.user.id, isArchived: false })
+        .populate('petType', 'name slug icon')
+        .populate('breed', 'name slug')
+        .populate('listingCategory', 'name slug');
+
+    if (!listing) return next(new ErrorHandler('Listing not found', 404));
+
+    const images = await ListingImage.find({ listing: listing._id }).sort({ order: 1 });
+    res.status(200).json({ success: true, listing, images });
+});
+
 exports.getMyListings = asyncErrorHandler(async (req, res) => {
     const { status } = req.query;
     const filter = { owner: req.user.id, isArchived: false };
@@ -138,7 +150,7 @@ exports.createListing = asyncErrorHandler(async (req, res, next) => {
         contactPhone, whatsappNumber, showContactInfo, extraFields,
         owner: req.user.id,
         slug,
-        status: 'draft',
+        status: 'pending',
     });
 
     // Handle image uploads
@@ -174,13 +186,37 @@ exports.updateListing = asyncErrorHandler(async (req, res, next) => {
     const needsReapproval = listing.status === 'approved' &&
         SIGNIFICANT_FIELDS.some(f => req.body[f] !== undefined && String(req.body[f]) !== String(listing[f]));
 
-    const updates = { ...req.body };
+    const { newImages, removeImageIds, ...rest } = req.body;
+    const updates = { ...rest };
     delete updates.owner; delete updates.status; delete updates.slug;
 
     if (needsReapproval) updates.status = 'pending';
 
     Object.assign(listing, updates);
     await listing.save();
+
+    // Remove deleted images
+    if (removeImageIds && removeImageIds.length) {
+        const toRemove = await ListingImage.find({ _id: { $in: removeImageIds }, listing: listing._id });
+        await Promise.all(toRemove.map(img => localUpload.destroy(img.publicId)));
+        await ListingImage.deleteMany({ _id: { $in: removeImageIds } });
+    }
+
+    // Upload new images
+    if (newImages && newImages.length) {
+        const existing = await ListingImage.countDocuments({ listing: listing._id });
+        const imagePromises = newImages.map((img, i) =>
+            localUpload.upload(img.base64, { folder: 'listings' }).then(result => ({
+                listing: listing._id,
+                url: result.secure_url,
+                publicId: result.public_id,
+                order: existing + i,
+                isPrimary: existing === 0 && i === 0,
+            }))
+        );
+        const imageData = await Promise.all(imagePromises);
+        await ListingImage.insertMany(imageData);
+    }
 
     res.status(200).json({ success: true, listing });
 });

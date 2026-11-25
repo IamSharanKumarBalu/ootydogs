@@ -1,7 +1,7 @@
 const express = require('express');
 const {
     getListings, getSingleListing,
-    getMyListings, createListing, updateListing,
+    getMyListings, getMyListingBySlug, createListing, updateListing,
     submitListing, markUnavailable, deleteListing,
     adminGetListings, adminGetSingleListing,
     adminApproveListing, adminRejectListing,
@@ -17,6 +17,7 @@ router.get('/listings/:slug', getSingleListing);
 
 // Verified users
 router.get('/my/listings', isAuthenticatedUser, getMyListings);
+router.get('/my/listings/:slug', isAuthenticatedUser, getMyListingBySlug);
 router.post('/listings', isAuthenticatedUser, requireVerified, createListing);
 router.put('/listings/:id', isAuthenticatedUser, updateListing);
 router.put('/listings/:id/submit', isAuthenticatedUser, submitListing);

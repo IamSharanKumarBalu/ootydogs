@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { HiArrowLeft, HiCheck } from "react-icons/hi";
-import { FaPaw } from "react-icons/fa";
+import { HiArrowLeft, HiCheck, HiX } from "react-icons/hi";
+import { FaPaw, FaCamera } from "react-icons/fa";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth/client";
 
@@ -21,6 +21,7 @@ const INDIAN_STATES = [
 interface PetType { _id: string; name: string; }
 interface Breed { _id: string; name: string; petType: string | { _id: string }; }
 interface ListingCategory { _id: string; name: string; }
+interface ExistingImage { _id: string; url: string; isPrimary: boolean; order: number; }
 
 function getToken() { try { return localStorage.getItem("auth_token") || ""; } catch { return ""; } }
 const inp = "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 text-sm transition-all";
@@ -39,6 +40,12 @@ export default function EditListingPage() {
   const [saving, setSaving] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
+  // Images
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
+  const [newImages, setNewImages] = useState<{ base64: string; preview: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState({
     title: "", petName: "", petType: "", breed: "", listingCategory: "",
     age: "", gender: "", colour: "", vaccinationStatus: "",
@@ -51,12 +58,15 @@ export default function EditListingPage() {
     setForm(prev => ({ ...prev, [key]: value }));
 
   useEffect(() => {
-    // Load dropdowns and listing in parallel
+    const token = getToken();
     Promise.all([
       fetch(`${API}/pet-types`).then(r => r.json()),
       fetch(`${API}/breeds?limit=200`).then(r => r.json()),
       fetch(`${API}/listing-categories`).then(r => r.json()),
-      fetch(`${API}/listings/${slug}`, { headers: { Authorization: `Bearer ${getToken()}` }, credentials: "include" }).then(r => r.json()),
+      fetch(`${API}/my/listings/${slug}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      }).then(r => r.json()),
     ]).then(([pt, br, cat, ld]) => {
       if (pt.success) setPetTypes(pt.petTypes || []);
       if (br.success) setBreeds(br.breeds || []);
@@ -64,6 +74,7 @@ export default function EditListingPage() {
       if (ld.success && ld.listing) {
         const l = ld.listing;
         setListingId(l._id);
+        setExistingImages((ld.images || []).sort((a: ExistingImage, b: ExistingImage) => a.order - b.order));
         setForm({
           title: l.title || "",
           petName: l.petName || "",
@@ -97,11 +108,38 @@ export default function EditListingPage() {
       })
     : breeds;
 
+  const totalPhotoCount = existingImages.length + newImages.length;
+
+  const handleImageFiles = (files: FileList | null) => {
+    if (!files) return;
+    const remaining = 5 - totalPhotoCount;
+    if (remaining <= 0) { toast.error("Maximum 5 photos allowed"); return; }
+    Array.from(files).slice(0, remaining).forEach(file => {
+      if (file.size > 4 * 1024 * 1024) { toast.error(`${file.name} exceeds 4 MB`); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const base64 = e.target?.result as string;
+        setNewImages(prev => prev.length + existingImages.length < 5 ? [...prev, { base64, preview: base64 }] : prev);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeExisting = (id: string) => {
+    setExistingImages(prev => prev.filter(img => img._id !== id));
+    setRemovedImageIds(prev => [...prev, id]);
+  };
+
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
     setSaving(true);
     try {
-      const payload = { ...form, price: form.price ? Number(form.price) : undefined };
+      const payload = {
+        ...form,
+        price: form.price ? Number(form.price) : undefined,
+        newImages: newImages.map(img => ({ base64: img.base64 })),
+        removeImageIds: removedImageIds,
+      };
       const res = await fetch(`${API}/listings/${listingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
@@ -242,6 +280,59 @@ export default function EditListingPage() {
               <div>
                 <label className={lbl}>Health Information</label>
                 <textarea value={form.healthInfo} onChange={e => set("healthInfo", e.target.value)} rows={3} className={`${inp} resize-none`} />
+              </div>
+
+              {/* Photos */}
+              <div>
+                <label className={lbl}>Photos <span className="text-slate-400 normal-case font-normal">(up to 5, first is cover)</span></label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={e => handleImageFiles(e.target.files)}
+                />
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {existingImages.map((img, i) => (
+                    <div key={img._id} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-green-100 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      {img.isPrimary && (
+                        <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-brand-green text-white py-0.5">COVER</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeExisting(img._id)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <HiX size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  {newImages.map((img, i) => (
+                    <div key={`new-${i}`} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-blue-100 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.preview} alt={`New ${i + 1}`} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-blue-500 text-white py-0.5">NEW</span>
+                      <button
+                        type="button"
+                        onClick={() => setNewImages(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <HiX size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  {totalPhotoCount < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-brand-green hover:text-brand-green transition-colors">
+                      <FaCamera size={18} />
+                      <span className="text-[10px] font-medium">Add Photo</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">JPG, PNG or WEBP · Max 4 MB each</p>
               </div>
             </div>
           </section>
