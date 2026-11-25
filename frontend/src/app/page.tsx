@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   FaSearch, FaArrowRight, FaCheckCircle, FaHeart,
-  FaPhoneAlt, FaShieldAlt, FaStar, FaPaw,
+  FaPhoneAlt, FaShieldAlt, FaStar,
 } from "react-icons/fa";
 import { HiLocationMarker } from "react-icons/hi";
 
@@ -84,8 +84,9 @@ function ListingCard({ listing }: { listing: LiveListing }) {
         {primaryImg ? (
           <Image src={primaryImg} alt={listing.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <FaPaw className="text-brand-green/20 w-16 h-16" />
+          <div className="w-full h-full bg-gradient-to-br from-green-50 to-emerald-100 flex flex-col items-center justify-center gap-1.5">
+            <span className="text-3xl">🐾</span>
+            <span className="text-xs text-slate-400 font-medium">No photo yet</span>
           </div>
         )}
         {listing.petType && (
@@ -227,7 +228,7 @@ export default async function Home() {
             </div>
           ) : (
             <div className="text-center py-16 bg-brand-green-soft rounded-2xl">
-              <FaPaw className="w-12 h-12 text-brand-green/20 mx-auto mb-3" />
+              <span className="text-5xl block mb-3">🐾</span>
               <p className="text-slate-500 mb-4">No featured listings yet — be the first!</p>
               <Link href="/listings/new" className="inline-block px-6 py-3 bg-brand-green text-white rounded-xl font-semibold text-sm hover:bg-brand-green-mid transition-colors">
                 Post Your Pet
