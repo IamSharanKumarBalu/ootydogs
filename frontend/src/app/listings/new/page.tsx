@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  HiArrowLeft, HiArrowRight, HiCheck, HiInformationCircle,
+  HiArrowLeft, HiArrowRight, HiCheck, HiInformationCircle, HiX,
 } from "react-icons/hi";
-import { FaPaw } from "react-icons/fa";
+import { FaPaw, FaCamera } from "react-icons/fa";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth/client";
 
@@ -42,6 +42,8 @@ export default function NewListingPage() {
   const [categories, setCategories] = useState<ListingCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [images, setImages] = useState<{ base64: string; preview: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     title: "", petName: "", petType: "", breed: "", listingCategory: "",
@@ -82,12 +84,29 @@ export default function NewListingPage() {
     return true;
   };
 
+  const handleImageFiles = (files: FileList | null) => {
+    if (!files) return;
+    const remaining = 5 - images.length;
+    if (remaining <= 0) { toast.error("Maximum 5 photos allowed"); return; }
+    const toProcess = Array.from(files).slice(0, remaining);
+    toProcess.forEach(file => {
+      if (file.size > 4 * 1024 * 1024) { toast.error(`${file.name} is too large (max 4 MB)`); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const base64 = e.target?.result as string;
+        setImages(prev => prev.length < 5 ? [...prev, { base64, preview: base64 }] : prev);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
       const payload = {
         ...form,
         price: form.price ? Number(form.price) : undefined,
+        images: images.map(img => ({ base64: img.base64 })),
       };
       const res = await fetch(`${API}/listings`, {
         method: "POST",
@@ -239,6 +258,46 @@ export default function NewListingPage() {
                   className={`${inp} resize-none`}
                   placeholder="Dewormed, vet records, any medical history…" />
               </div>
+
+              {/* Photo Upload */}
+              <div>
+                <label className={lbl}>Photos <span className="text-slate-400 normal-case font-normal">(up to 5, first is cover)</span></label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={e => handleImageFiles(e.target.files)}
+                />
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {images.map((img, i) => (
+                    <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-green-100 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                      {i === 0 && (
+                        <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-brand-green text-white py-0.5">COVER</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <HiX size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-brand-green hover:text-brand-green transition-colors">
+                      <FaCamera size={18} />
+                      <span className="text-[10px] font-medium">Add Photo</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">JPG, PNG or WEBP · Max 4 MB each</p>
+              </div>
             </div>
           )}
 
@@ -315,6 +374,7 @@ export default function NewListingPage() {
                 <Row label="Location" value={[form.city, form.state].filter(Boolean).join(", ") || "Not specified"} />
                 <Row label="Price" value={form.price ? `₹${Number(form.price).toLocaleString("en-IN")}` : "Free / Negotiable"} />
                 <Row label="Contact visible" value={form.showContactInfo ? "Yes" : "Via enquiry form only"} />
+                <Row label="Photos" value={images.length > 0 ? `${images.length} photo${images.length > 1 ? "s" : ""} selected` : "None (you can add later)"} />
               </div>
 
               <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
