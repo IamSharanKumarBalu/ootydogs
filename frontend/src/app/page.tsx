@@ -45,7 +45,7 @@ interface LiveListing {
   _id: string; slug: string; title: string;
   petType?: { name: string }; breed?: { name: string };
   age?: string; gender?: string; city?: string; state?: string;
-  images?: { url: string; isPrimary: boolean }[];
+  primaryImage?: string;
   featuredListing: boolean;
 }
 
@@ -74,7 +74,7 @@ async function getSiteStats(): Promise<SiteStats> {
 }
 
 function ListingCard({ listing }: { listing: LiveListing }) {
-  const primaryImg = listing.images?.find(i => i.isPrimary)?.url || listing.images?.[0]?.url;
+  const primaryImg = listing.primaryImage;
   const location = [listing.city, listing.state].filter(Boolean).join(", ") || "India";
 
   return (
