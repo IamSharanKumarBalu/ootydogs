@@ -17,6 +17,7 @@ const breedSchema = new mongoose.Schema({
         required: [true, 'Pet type is required'],
     },
     description: { type: String },
+    image: { url: { type: String }, publicId: { type: String } },
     active: { type: Boolean, default: true },
 }, { timestamps: true });
 

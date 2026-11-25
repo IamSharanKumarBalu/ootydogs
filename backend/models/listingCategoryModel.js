@@ -23,6 +23,7 @@ const listingCategorySchema = new mongoose.Schema({
             options:  [String], // for select type
         },
     ],
+    image: { url: { type: String }, publicId: { type: String } },
     active: { type: Boolean, default: true },
     order:  { type: Number, default: 0 },
 }, { timestamps: true });

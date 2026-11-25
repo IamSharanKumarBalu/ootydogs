@@ -13,7 +13,8 @@ const petTypeSchema = new mongoose.Schema({
         unique: true,
         lowercase: true,
     },
-    icon: { type: String }, // emoji or icon identifier, e.g. '🐕'
+    icon:  { type: String },
+    image: { url: { type: String }, publicId: { type: String } },
     active: { type: Boolean, default: true },
     order:  { type: Number, default: 0 },
 }, { timestamps: true });

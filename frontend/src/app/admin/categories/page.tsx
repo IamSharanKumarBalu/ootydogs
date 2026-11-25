@@ -1,16 +1,56 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { HiPlus, HiPencil, HiTrash, HiX, HiCheck } from "react-icons/hi";
+import Image from "next/image";
+import { HiPlus, HiPencil, HiTrash, HiX, HiCheck, HiPhotograph } from "react-icons/hi";
 import { FaTag } from "react-icons/fa";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api/v1";
 function getToken() { try { return localStorage.getItem("auth_token") || ""; } catch { return ""; } }
 
-interface ListingCategory { _id: string; name: string; description?: string; }
+interface ListingCategory { _id: string; name: string; description?: string; image?: { url: string } }
 interface ServiceCategory  { _id: string; name: string; description?: string; }
+
+function ImagePicker({ current, onSelect, onRemove }: {
+  current?: string; onSelect: (b64: string) => void; onRemove: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const pick = (f: File | null) => {
+    if (!f) return;
+    if (f.size > 4 * 1024 * 1024) { toast.error("Max 4 MB"); return; }
+    const r = new FileReader();
+    r.onload = e => onSelect(e.target?.result as string);
+    r.readAsDataURL(f);
+  };
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Image</label>
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={e => pick(e.target.files?.[0] || null)} />
+      {current ? (
+        <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200 group">
+          <Image src={current} alt="preview" fill className="object-cover" />
+          <button type="button" onClick={onRemove}
+            className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <HiX size={12} />
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => ref.current?.click()}
+          className="w-full h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:border-brand-green hover:text-brand-green transition-colors">
+          <HiPhotograph size={22} />
+          <span className="text-xs font-medium">Upload category image</span>
+        </button>
+      )}
+      {current && (
+        <button type="button" onClick={() => ref.current?.click()} className="mt-1.5 text-xs text-brand-green hover:underline">
+          Change image
+        </button>
+      )}
+    </div>
+  );
+}
 
 const inp = "w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 text-sm transition-all";
 
@@ -46,6 +86,8 @@ function ListingCategoriesTab() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ mode: "add" | "edit"; item?: ListingCategory } | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
+  const [image, setImage] = useState<string | null>(null);
+  const [imgRemoved, setImgRemoved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -61,8 +103,15 @@ function ListingCategoriesTab() {
 
   useEffect(() => { fetchItems(); }, []);
 
-  const openAdd = () => { setForm({ name: "", description: "" }); setModal({ mode: "add" }); };
-  const openEdit = (item: ListingCategory) => { setForm({ name: item.name, description: item.description || "" }); setModal({ mode: "edit", item }); };
+  const openAdd = () => {
+    setForm({ name: "", description: "" }); setImage(null); setImgRemoved(false);
+    setModal({ mode: "add" });
+  };
+  const openEdit = (item: ListingCategory) => {
+    setForm({ name: item.name, description: item.description || "" });
+    setImage(item.image?.url || null); setImgRemoved(false);
+    setModal({ mode: "edit", item });
+  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("Name is required"); return; }
@@ -70,11 +119,14 @@ function ListingCategoriesTab() {
     try {
       const isEdit = modal?.mode === "edit";
       const url = isEdit ? `${API}/admin/listing-categories/${modal!.item!._id}` : `${API}/admin/listing-categories`;
+      const body: Record<string, unknown> = { ...form };
+      if (imgRemoved) body.removeImage = true;
+      if (image && image.startsWith("data:")) body.imageBase64 = image;
       const res = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         credentials: "include",
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       const d = await res.json();
       if (d.success) { toast.success(isEdit ? "Category updated" : "Category created"); setModal(null); fetchItems(); }
@@ -125,6 +177,7 @@ function ListingCategoriesTab() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Image</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Description</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
@@ -133,6 +186,15 @@ function ListingCategoriesTab() {
             <tbody className="divide-y divide-slate-100">
               {items.map(item => (
                 <tr key={item._id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3">
+                    {item.image?.url ? (
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-100">
+                        <Image src={item.image.url} alt={item.name} fill className="object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 text-lg">🏷️</div>
+                    )}
+                  </td>
                   <td className="px-5 py-3 font-medium text-slate-800">{item.name}</td>
                   <td className="px-5 py-3 text-slate-500 hidden sm:table-cell">{item.description || "—"}</td>
                   <td className="px-5 py-3">
@@ -164,6 +226,11 @@ function ListingCategoriesTab() {
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Description</label>
             <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={inp} placeholder="Optional short description" />
           </div>
+          <ImagePicker
+            current={image || undefined}
+            onSelect={b64 => { setImage(b64); setImgRemoved(false); }}
+            onRemove={() => { setImage(null); setImgRemoved(true); }}
+          />
         </Modal>
       )}
     </>
