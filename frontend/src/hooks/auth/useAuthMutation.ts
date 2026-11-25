@@ -52,7 +52,7 @@ export const useAuthMutation = () => {
       name: string;
       phone: string;
     }) => {
-      const result = await authClient.signUp.email({ email, password, name, callbackURL: "/" });
+      const result = await authClient.signUp.email({ email, password, name, phone, callbackURL: "/" });
       if (result.error) throw new Error((result.error as any)?.message || "Error creating account");
       // Also send phone to backend via a profile update after registration
       // The register endpoint itself must accept phone — handled via authClient.signUp
