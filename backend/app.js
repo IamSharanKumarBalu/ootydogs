@@ -40,17 +40,6 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(fileUpload());
 
-// Ensure DB is connected before every request (serverless-safe)
-const connectDatabase = require('./config/database');
-app.use(async (req, res, next) => {
-    try {
-        await connectDatabase();
-        next();
-    } catch (err) {
-        res.status(503).json({ success: false, message: 'Database unavailable' });
-    }
-});
-
 const user = require('./routes/userRoute');
 const blog = require('./routes/blogRoute');
 const slider = require('./routes/sliderRoute');
