@@ -31,6 +31,21 @@ exports.authorizeRoles = (...roles) => {
     }
 }
 
+// Populates req.user if a valid token is present, otherwise proceeds as anonymous.
+exports.optionalAuth = async (req, res, next) => {
+    try {
+        let token = req.cookies.token;
+        if (!token && req.headers.authorization?.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = await User.findById(decoded.id);
+        }
+    } catch { /* invalid/expired token — proceed as anonymous */ }
+    next();
+};
+
 // Blocks listing creation until admin has verified the user.
 exports.requireVerified = (req, res, next) => {
     if (!req.user.canPostListings) {

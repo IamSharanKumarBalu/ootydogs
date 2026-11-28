@@ -250,10 +250,14 @@ function ServiceCategoriesTab() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/service-categories`);
+      const res = await fetch(`${API}/service-categories`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+        credentials: "include",
+      });
       const d = await res.json();
       if (d.success) setItems(d.categories || []);
-    } catch { /* silent */ }
+      else toast.error(d.message || "Failed to load service categories");
+    } catch (e) { toast.error("Could not load service categories"); console.error(e); }
     finally { setLoading(false); }
   };
 

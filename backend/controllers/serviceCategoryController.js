@@ -5,11 +5,11 @@ const slugify = require('../utils/slugify');
 const cloudinary = require('../utils/localUpload');
 
 exports.getAllServiceCategories = asyncErrorHandler(async (req, res) => {
-    const filter = req.user?.role === 'admin' ? {} : { active: true };
-    const limit = req.query.limit ? parseInt(req.query.limit) : 0;
-    let query = ServiceCategory.find(filter).sort({ order: 1, name: 1 });
-    if (limit > 0) query = query.limit(limit);
-    const categories = await query;
+    const isAdmin = req.user?.role === 'admin';
+    const filter = isAdmin ? {} : { active: true };
+    const limit = parseInt(req.query.limit) || 0;
+    const dbQuery = ServiceCategory.find(filter).sort({ order: 1, name: 1 });
+    const categories = await (limit > 0 ? dbQuery.limit(limit) : dbQuery);
     res.status(200).json({ success: true, categories });
 });
 
@@ -27,7 +27,7 @@ exports.createServiceCategory = asyncErrorHandler(async (req, res, next) => {
     const category = await ServiceCategory.create({ name, slug, description, order, image });
     res.status(201).json({ success: true, category });
 });
-
+  
 exports.updateServiceCategory = asyncErrorHandler(async (req, res, next) => {
     const { name, description, order, active, imageBase64, removeImage } = req.body;
     const update = {};
