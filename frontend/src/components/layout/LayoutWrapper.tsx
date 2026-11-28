@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { SplashScreen } from "@/components/SplashScreen";
+import { ChatBubble } from "@/components/ChatBubble";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,11 +18,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <SplashScreen />
       <Navbar />
       {/* pb-16 on mobile so content clears the fixed bottom nav */}
       <main className="pointer-events-auto pb-16 lg:pb-0">{children}</main>
       <Footer />
       <MobileBottomNav />
+      <ChatBubble />
     </>
   );
 }
