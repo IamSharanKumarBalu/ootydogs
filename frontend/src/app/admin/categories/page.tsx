@@ -11,7 +11,7 @@ const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api/v
 function getToken() { try { return localStorage.getItem("auth_token") || ""; } catch { return ""; } }
 
 interface ListingCategory { _id: string; name: string; description?: string; image?: { url: string } }
-interface ServiceCategory  { _id: string; name: string; description?: string; }
+interface ServiceCategory  { _id: string; name: string; description?: string; image?: { url: string } }
 
 function ImagePicker({ current, onSelect, onRemove }: {
   current?: string; onSelect: (b64: string) => void; onRemove: () => void;
@@ -242,13 +242,15 @@ function ServiceCategoriesTab() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ mode: "add" | "edit"; item?: ServiceCategory } | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
+  const [image, setImage] = useState<string | null>(null);
+  const [imgRemoved, setImgRemoved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/service-categories`, { headers: { Authorization: `Bearer ${getToken()}` }, credentials: "include" });
+      const res = await fetch(`${API}/service-categories`);
       const d = await res.json();
       if (d.success) setItems(d.categories || []);
     } catch { /* silent */ }
@@ -257,8 +259,15 @@ function ServiceCategoriesTab() {
 
   useEffect(() => { fetchItems(); }, []);
 
-  const openAdd = () => { setForm({ name: "", description: "" }); setModal({ mode: "add" }); };
-  const openEdit = (item: ServiceCategory) => { setForm({ name: item.name, description: item.description || "" }); setModal({ mode: "edit", item }); };
+  const openAdd = () => {
+    setForm({ name: "", description: "" }); setImage(null); setImgRemoved(false);
+    setModal({ mode: "add" });
+  };
+  const openEdit = (item: ServiceCategory) => {
+    setForm({ name: item.name, description: item.description || "" });
+    setImage(item.image?.url || null); setImgRemoved(false);
+    setModal({ mode: "edit", item });
+  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("Name is required"); return; }
@@ -266,11 +275,14 @@ function ServiceCategoriesTab() {
     try {
       const isEdit = modal?.mode === "edit";
       const url = isEdit ? `${API}/admin/service-categories/${modal!.item!._id}` : `${API}/admin/service-categories`;
+      const body: Record<string, unknown> = { ...form };
+      if (imgRemoved) body.removeImage = true;
+      if (image && image.startsWith("data:")) body.imageBase64 = image;
       const res = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         credentials: "include",
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       const d = await res.json();
       if (d.success) { toast.success(isEdit ? "Category updated" : "Category created"); setModal(null); fetchItems(); }
@@ -321,6 +333,7 @@ function ServiceCategoriesTab() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Image</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Description</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
@@ -329,6 +342,15 @@ function ServiceCategoriesTab() {
             <tbody className="divide-y divide-slate-100">
               {items.map(item => (
                 <tr key={item._id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3">
+                    {item.image?.url ? (
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-100">
+                        <Image src={item.image.url} alt={item.name} fill className="object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 text-lg">🐾</div>
+                    )}
+                  </td>
                   <td className="px-5 py-3 font-medium text-slate-800">{item.name}</td>
                   <td className="px-5 py-3 text-slate-500 hidden sm:table-cell">{item.description || "—"}</td>
                   <td className="px-5 py-3">
@@ -360,6 +382,11 @@ function ServiceCategoriesTab() {
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Description</label>
             <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={inp} placeholder="Optional short description" />
           </div>
+          <ImagePicker
+            current={image || undefined}
+            onSelect={b64 => { setImage(b64); setImgRemoved(false); }}
+            onRemove={() => { setImage(null); setImgRemoved(true); }}
+          />
         </Modal>
       )}
     </>
