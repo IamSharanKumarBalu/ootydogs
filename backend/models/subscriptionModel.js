@@ -12,12 +12,14 @@ const subscriptionSchema = new mongoose.Schema({
     price: { type: Number, required: true },
     listingsAllowed: { type: Number, required: true }, // -1 = unlimited
     listingsUsed:    { type: Number, default: 0 },
-    status: { type: String, enum: ['pending', 'active', 'expired'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'active', 'expired', 'refunded'], default: 'pending' },
     validFrom:  { type: Date },
     validUntil: { type: Date },
     razorpayOrderId:   { type: String },
     razorpayPaymentId: { type: String },
     razorpaySignature: { type: String },
+    refunded:  { type: Boolean, default: false },
+    refundId:  { type: String },
 }, { timestamps: true });
 
 subscriptionSchema.index({ user: 1, status: 1 });

@@ -8,7 +8,7 @@ import { signOut } from "@/lib/auth/client";
 import { toast } from "sonner";
 import {
   HiHome, HiClipboardList, HiCollection, HiUsers, HiNewspaper,
-  HiFlag, HiCog, HiLogout, HiArrowLeft, HiTag,
+  HiFlag, HiCog, HiLogout, HiArrowLeft, HiTag, HiCreditCard,
 } from "react-icons/hi";
 import { FaPaw, FaDog } from "react-icons/fa";
 import { MdPets } from "react-icons/md";
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { title: "Breeds",      href: "/admin/breeds",       icon: FaDog },
   { title: "Categories",  href: "/admin/categories",   icon: HiTag },
   { title: "Blogs",       href: "/admin/blogs",        icon: HiNewspaper },
+  { title: "Transactions", href: "/admin/transactions", icon: HiCreditCard },
   { title: "Reports",     href: "/admin/reports",      icon: HiFlag },
   { title: "Settings",    href: "/admin/settings",     icon: HiCog },
 ];

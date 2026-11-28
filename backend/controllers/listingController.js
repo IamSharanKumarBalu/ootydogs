@@ -175,6 +175,7 @@ exports.createListing = asyncErrorHandler(async (req, res, next) => {
         slug,
         status: 'pending',
         expiresAt,
+        subscription: sub._id,
     });
 
     // Increment subscription usage
@@ -347,8 +348,10 @@ exports.adminApproveListing = asyncErrorHandler(async (req, res, next) => {
 
     listing.status = 'approved';
     listing.rejectionReason = undefined;
-    // Set expiry: 90 days by default
-    listing.expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+    // Keep subscription-set expiresAt; only set default if none exists
+    if (!listing.expiresAt) {
+        listing.expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+    }
     await listing.save();
 
     await ListingApproval.create({ listing: listing._id, action: 'approved', admin: req.user.id });
@@ -368,6 +371,46 @@ exports.adminRejectListing = asyncErrorHandler(async (req, res, next) => {
     await listing.save();
 
     await ListingApproval.create({ listing: listing._id, action: 'rejected', admin: req.user.id, reason });
+
+    // Restore listing slot and auto-refund for Basic plan
+    if (listing.subscription) {
+        try {
+            const sub = await Subscription.findById(listing.subscription);
+            if (sub) {
+                sub.listingsUsed = Math.max(0, sub.listingsUsed - 1);
+
+                // Basic plan: full refund since the user paid ₹100 for this one listing
+                if (
+                    sub.plan === 'basic' &&
+                    sub.razorpayPaymentId &&
+                    !sub.refunded &&
+                    sub.status === 'active'
+                ) {
+                    const Razorpay = require('razorpay');
+                    const rzp = new Razorpay({
+                        key_id:     process.env.RAZORPAY_KEY_ID,
+                        key_secret: process.env.RAZORPAY_KEY_SECRET,
+                    });
+                    const refund = await rzp.payments.refund(sub.razorpayPaymentId, {
+                        amount: sub.price * 100, // paise
+                        speed: 'optimum',
+                        notes: {
+                            reason: 'Listing rejected by admin',
+                            listingId: listing._id.toString(),
+                        },
+                    });
+                    sub.status   = 'refunded';
+                    sub.refunded = true;
+                    sub.refundId = refund.id;
+                }
+
+                await sub.save();
+            }
+        } catch (refundErr) {
+            // Don't fail the rejection if the refund API call fails
+            console.error('Refund error on rejection:', refundErr.message);
+        }
+    }
 
     res.status(200).json({ success: true, message: 'Listing rejected' });
 });

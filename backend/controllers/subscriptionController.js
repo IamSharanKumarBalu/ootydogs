@@ -64,6 +64,38 @@ exports.createOrder = asyncErrorHandler(async (req, res, next) => {
     });
 });
 
+// GET /api/v1/admin/transactions  — admin only
+exports.adminGetTransactions = asyncErrorHandler(async (req, res) => {
+    const { page = 1, limit = 20, plan, status } = req.query;
+    const filter = {};
+    if (plan)   filter.plan   = plan;
+    if (status) filter.status = status;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const [subscriptions, total] = await Promise.all([
+        Subscription.find(filter)
+            .populate('user', 'name email phone')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit)),
+        Subscription.countDocuments(filter),
+    ]);
+
+    // Revenue summary
+    const revenue = await Subscription.aggregate([
+        { $match: { status: { $in: ['active', 'expired'] } } },
+        { $group: { _id: null, total: { $sum: '$price' }, count: { $sum: 1 } } },
+    ]);
+
+    res.status(200).json({
+        success: true,
+        total,
+        pages: Math.ceil(total / Number(limit)),
+        subscriptions,
+        revenue: revenue[0] || { total: 0, count: 0 },
+    });
+});
+
 // POST /api/v1/subscription/verify-payment  — auth required
 exports.verifyPayment = asyncErrorHandler(async (req, res, next) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;

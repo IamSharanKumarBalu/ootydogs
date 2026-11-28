@@ -72,6 +72,9 @@ const petListingSchema = new mongoose.Schema({
         lowercase: true,
     },
 
+    // Subscription that funded this listing
+    subscription: { type: mongoose.Schema.ObjectId, ref: 'Subscription' },
+
     // Expiry
     expiresAt: { type: Date },
 
