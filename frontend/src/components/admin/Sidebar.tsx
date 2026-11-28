@@ -10,12 +10,13 @@ import {
   HiHome, HiClipboardList, HiCollection, HiUsers, HiNewspaper,
   HiFlag, HiCog, HiLogout, HiArrowLeft, HiTag, HiCreditCard,
 } from "react-icons/hi";
-import { FaPaw, FaDog } from "react-icons/fa";
+import { FaPaw, FaDog, FaBoxOpen } from "react-icons/fa";
 import { MdPets } from "react-icons/md";
 
 const NAV_ITEMS = [
   { title: "Dashboard",   href: "/admin",             icon: HiHome,         exact: true },
   { title: "Listings",    href: "/admin/listings",     icon: HiClipboardList },
+  { title: "Products",    href: "/admin/products",     icon: FaBoxOpen },
   { title: "Services",    href: "/admin/services",     icon: MdPets },
   { title: "Users",       href: "/admin/users",        icon: HiUsers },
   { title: "Breeds",      href: "/admin/breeds",       icon: FaDog },

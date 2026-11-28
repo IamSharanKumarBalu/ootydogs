@@ -7,7 +7,7 @@ import {
   HiUser, HiMail, HiPhone, HiPencil, HiCheckCircle, HiClock, HiExclamation,
   HiLocationMarker, HiTrash, HiEye, HiChat,
 } from "react-icons/hi";
-import { FaListAlt, FaHeart, FaPaw, FaStore } from "react-icons/fa";
+import { FaListAlt, FaHeart, FaPaw, FaStore, FaBoxOpen } from "react-icons/fa";
 import { toast } from "sonner";
 import LoadingButton from "@/components/ui/loadingButton";
 import { clearSession, refreshSession } from "@/lib/auth/client";
@@ -32,6 +32,12 @@ interface FavListing {
 interface MyService {
   _id: string; slug: string; businessName: string; category: string;
   status: string; city?: string; state?: string; createdAt: string;
+}
+
+interface MyProduct {
+  _id: string; slug: string; title: string; category: string; condition: string;
+  askingPrice?: number; status: string; city?: string; state?: string; createdAt: string;
+  images: { url: string }[];
 }
 
 interface Enquiry {
@@ -61,6 +67,7 @@ const STATUS_COLOR: Record<string, string> = {
 const TABS = [
   { id: "profile",    label: "Profile",       icon: HiUser },
   { id: "listings",   label: "My Listings",   icon: FaListAlt },
+  { id: "products",   label: "My Products",   icon: FaBoxOpen },
   { id: "services",   label: "My Services",   icon: FaStore },
   { id: "enquiries",  label: "Enquiries",     icon: HiChat },
   { id: "saved",      label: "Saved Pets",    icon: FaHeart },
@@ -84,6 +91,11 @@ function ProfilePageInner() {
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Products tab
+  const [myProducts, setMyProducts] = useState<MyProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
   // Services tab
   const [myServices, setMyServices] = useState<MyService[]>([]);
@@ -126,6 +138,15 @@ function ProfilePageInner() {
       .finally(() => setListingsLoading(false));
   }, []);
 
+  const fetchMyProducts = useCallback(() => {
+    setProductsLoading(true);
+    fetch(`${API}/my/products`, { headers: { Authorization: `Bearer ${getToken()}` }, credentials: "include" })
+      .then(r => r.json())
+      .then(d => { if (d.success) setMyProducts(d.products || []); })
+      .catch(() => {})
+      .finally(() => setProductsLoading(false));
+  }, []);
+
   const fetchMyServices = useCallback(() => {
     setServicesLoading(true);
     fetch(`${API}/my/services`, { headers: { Authorization: `Bearer ${getToken()}` }, credentials: "include" })
@@ -155,10 +176,11 @@ function ProfilePageInner() {
 
   useEffect(() => {
     if (activeTab === "listings")  fetchMyListings();
+    if (activeTab === "products")  fetchMyProducts();
     if (activeTab === "services")  fetchMyServices();
     if (activeTab === "enquiries") fetchEnquiries();
     if (activeTab === "saved")     fetchSaved();
-  }, [activeTab, fetchMyListings, fetchMyServices, fetchEnquiries, fetchSaved]);
+  }, [activeTab, fetchMyListings, fetchMyProducts, fetchMyServices, fetchEnquiries, fetchSaved]);
 
   const handleUpdateProfile = async () => {
     setIsUpdating(true);
@@ -192,6 +214,20 @@ function ProfilePageInner() {
       else toast.error(d.message || "Failed to delete");
     } catch { toast.error("Network error"); }
     finally { setDeletingId(null); }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Delete this product? This cannot be undone.")) return;
+    setDeletingProductId(id);
+    try {
+      const res = await fetch(`${API}/products/${id}`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${getToken()}` }, credentials: "include",
+      });
+      const d = await res.json();
+      if (d.success) { toast.success("Product deleted"); fetchMyProducts(); }
+      else toast.error(d.message || "Failed to delete");
+    } catch { toast.error("Network error"); }
+    finally { setDeletingProductId(null); }
   };
 
   const handleDeleteService = async (id: string) => {
@@ -418,6 +454,66 @@ function ProfilePageInner() {
                         <HiPencil size={16} />
                       </Link>
                       <button onClick={() => handleDeleteListing(l._id)} disabled={deletingId === l._id}
+                        className="p-2 rounded-lg bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-brand-red transition-colors disabled:opacity-50" title="Delete">
+                        <HiTrash size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* My Products Tab */}
+        {activeTab === "products" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h2 className="text-xl font-bold text-slate-900">My Products</h2>
+              <Link href="/products/new"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-red text-white rounded-xl text-sm font-semibold hover:bg-brand-red-light transition-colors shadow-sm">
+                <FaBoxOpen size={12} /> + List a Product
+              </Link>
+            </div>
+
+            {productsLoading ? (
+              <div className="bg-white rounded-2xl border border-green-100 p-10 text-center shadow-sm">
+                <FaPaw className="w-8 h-8 text-brand-green/30 mx-auto animate-bounce" />
+              </div>
+            ) : myProducts.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-green-100 p-10 text-center shadow-sm">
+                <FaBoxOpen className="w-14 h-14 text-slate-200 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">No products listed yet</h3>
+                <p className="text-slate-500 text-sm mb-6">List pet food, accessories, toys and more.</p>
+                <Link href="/products/new" className="inline-block px-6 py-3 bg-brand-green text-white rounded-xl hover:bg-brand-green-mid transition-colors font-medium text-sm">
+                  List Your First Product
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myProducts.map(p => (
+                  <div key={p._id} className="bg-white rounded-2xl border border-green-100 p-4 shadow-sm flex items-center gap-4 flex-wrap">
+                    <div className="w-12 h-12 bg-brand-green-soft rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                      {p.images?.[0]?.url
+                        ? <img src={p.images[0].url} alt="" className="w-full h-full object-cover rounded-xl" />
+                        : <FaBoxOpen className="text-brand-green w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 truncate">{p.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-[11px] text-slate-500 capitalize">{p.category?.replace("-", " ")}</span>
+                        <span className="text-[11px] text-slate-400 capitalize">· {p.condition?.replace("-", " ")}</span>
+                        {p.askingPrice && <span className="text-[11px] font-semibold text-brand-green">· ₹{p.askingPrice.toLocaleString("en-IN")}</span>}
+                        {p.city && <span className="text-[11px] text-slate-400">· {[p.city, p.state].filter(Boolean).join(", ")}</span>}
+                      </div>
+                    </div>
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLOR[p.status] || "bg-slate-100 text-slate-600"}`}>{p.status}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link href={`/products/${p.slug}`} target="_blank"
+                        className="p-2 rounded-lg bg-slate-50 text-slate-500 hover:bg-brand-green-soft hover:text-brand-green transition-colors" title="View">
+                        <HiEye size={16} />
+                      </Link>
+                      <button onClick={() => handleDeleteProduct(p._id)} disabled={deletingProductId === p._id}
                         className="p-2 rounded-lg bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-brand-red transition-colors disabled:opacity-50" title="Delete">
                         <HiTrash size={16} />
                       </button>

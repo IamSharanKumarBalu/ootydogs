@@ -55,6 +55,7 @@ const report = require('./routes/reportRoute');
 const adminStats = require('./routes/adminStatsRoute');
 const vendor = require('./routes/vendorRoute');
 const subscription = require('./routes/subscriptionRoute');
+const product = require('./routes/productRoute');
 
 app.use('/api/v1', user);
 app.use('/api/v1', blog);
@@ -71,6 +72,7 @@ app.use('/api/v1', report);
 app.use('/api/v1', adminStats);
 app.use('/api/v1', vendor);
 app.use('/api/v1', subscription);
+app.use('/api/v1', product);
 
 // error middleware
 app.use(errorMiddleware);

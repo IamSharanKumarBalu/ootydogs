@@ -16,8 +16,9 @@ import NotificationBell from "./NotificationBell";
 
 const NAV_LINKS = [
   { label: "Browse Pets", href: "/listings" },
-  { label: "Breeds",      href: "/breeds" },
+  { label: "Products",    href: "/products" },
   { label: "Services",    href: "/services" },
+  { label: "Breeds",      href: "/breeds" },
   { label: "Blog",        href: "/blogs" },
   { label: "Contact",     href: "/contact" },
 ];
