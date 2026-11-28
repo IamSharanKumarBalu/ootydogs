@@ -358,7 +358,7 @@ function ProfilePageInner() {
               {[
                 { label: "Full Name", icon: HiUser, key: "name", type: "text" },
                 { label: "Email Address", icon: HiMail, key: "email", type: "email" },
-                { label: "Mobile Number", icon: HiPhone, key: "phone", type: "tel", placeholder: "+91 98765 43210" },
+                { label: "Mobile Number", icon: HiPhone, key: "phone", type: "tel", placeholder: "+91 70945 08737" },
                 { label: "City", icon: HiLocationMarker, key: "city", type: "text", placeholder: "e.g. Ooty" },
               ].map(({ label, icon: Icon, key, type, placeholder }) => (
                 <div key={key}>

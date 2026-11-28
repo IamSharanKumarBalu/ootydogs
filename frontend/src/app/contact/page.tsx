@@ -103,7 +103,7 @@ export default function ContactPage() {
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-pink-50 text-pink-700 rounded-xl text-sm font-medium hover:bg-pink-100 transition-colors">
                   <FaInstagram size={16} /> Instagram
                 </a>
-                <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/917094508737" target="_blank" rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-50 text-green-700 rounded-xl text-sm font-medium hover:bg-green-100 transition-colors">
                   <FaWhatsapp size={16} /> WhatsApp
                 </a>

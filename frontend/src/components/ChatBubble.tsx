@@ -129,7 +129,7 @@ export function ChatBubble() {
               </p>
 
               <a
-                href="https://wa.me/919876543210"
+                href="https://wa.me/917094508737"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 rounded-xl bg-green-50 hover:bg-green-100 transition-colors group"
@@ -142,7 +142,7 @@ export function ChatBubble() {
               </a>
 
               <a
-                href="tel:+919876543210"
+                href="tel:+917094508737"
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors group"
               >
                 <FaPhone className="text-brand-green ml-1" size={16} />

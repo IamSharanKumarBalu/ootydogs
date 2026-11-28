@@ -6,10 +6,12 @@ export const config = {
   appTagline: "Find Your Perfect Pet Companion",
   appDescription: "India's trusted platform to discover pets, connect with breeders, and find pet services — all in one place.",
 
-  // Contact — placeholders, swap per deployment
+  // Contact
   contact: {
     email: "hello@ootydogs.com",
-    phone: "+91 98765 43210",
+    phone: "+91 70945 08737",
+    whatsapp: "917094508737",
+    location: "Ooty, Tamil Nadu, India",
     instagram: "https://instagram.com/ootydogs",
   },
 

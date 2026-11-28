@@ -127,7 +127,7 @@ const Register = () => {
               {/* Phone */}
               <div>
                 <label className={lbl}>Mobile Number</label>
-                <input type="tel" ref={phoneRef} required placeholder="+91 98765 43210"
+                <input type="tel" ref={phoneRef} required placeholder="+91 70945 08737"
                   pattern="[0-9+\s\-]{7,15}" className={inp} name="phone" disabled={signUp.isPending} />
                 <p className="text-xs text-slate-400 mt-1.5">Used for listing enquiries and account verification</p>
               </div>

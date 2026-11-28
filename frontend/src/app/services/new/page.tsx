@@ -205,11 +205,11 @@ export default function NewServicePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={lbl}>Phone Number</label>
-                  <input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} className={inp} placeholder="+91 98765 43210" />
+                  <input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} className={inp} placeholder="+91 70945 08737" />
                 </div>
                 <div>
                   <label className={lbl}>WhatsApp</label>
-                  <input type="tel" value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} className={inp} placeholder="+91 98765 43210" />
+                  <input type="tel" value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} className={inp} placeholder="+91 70945 08737" />
                 </div>
               </div>
 

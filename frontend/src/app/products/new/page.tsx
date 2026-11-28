@@ -261,7 +261,7 @@ export default function NewProductPage() {
               <div>
                 <label className={lbl}>Phone Number</label>
                 <input type="tel" value={form.contactPhone} onChange={e => set("contactPhone", e.target.value)}
-                  className={inp} placeholder="+91 98765 43210" />
+                  className={inp} placeholder="+91 70945 08737" />
               </div>
 
               <div>

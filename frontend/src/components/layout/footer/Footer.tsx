@@ -121,7 +121,8 @@ export const Footer = () => {
             {[
               { label: "Privacy Policy",     href: "/legal/privacy" },
               { label: "Terms & Conditions", href: "/legal/terms" },
-              { label: "Animal Welfare",     href: "/legal/animal-welfare"  },
+              { label: "Returns & Refunds",  href: "/legal/returns" },
+              { label: "Animal Welfare",     href: "/legal/animal-welfare" },
             ].map(l => (
               <Link key={l.href} href={l.href}
                 className="text-white/40 hover:text-white/70 transition-colors">
