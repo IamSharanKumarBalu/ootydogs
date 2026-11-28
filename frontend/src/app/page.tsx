@@ -42,7 +42,7 @@ async function getPetTypes(): Promise<PetType[]> {
 
 async function getServiceCategories(): Promise<ServiceCategory[]> {
   try {
-    const res = await fetch(`${API}/service-categories?limit=6`, { next: { revalidate: 1800 } });
+    const res = await fetch(`${API}/service-categories?limit=6`, { next: { revalidate: 300 } });
     if (!res.ok) return [];
     const data = await res.json();
     return data.categories || [];
