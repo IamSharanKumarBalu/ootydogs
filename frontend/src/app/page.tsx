@@ -8,31 +8,23 @@ import { HiLocationMarker } from "react-icons/hi";
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api/v1";
 
-const PET_TYPES = [
-  { label: "Dogs",     image: "/02_category_dogs.jpg",     href: "/listings?petType=Dogs"     },
-  { label: "Cats",     image: "/03_category_cats.jpg",     href: "/listings?petType=Cats"     },
-  { label: "Birds",    image: "/04_category_birds.jpg",    href: "/listings?petType=Birds"    },
-  { label: "Fish",     image: "/05_category_fish.jpg",     href: "/listings?petType=Fish"     },
-  { label: "Rabbits",  image: "/06_category_rabbits.jpg",  href: "/listings?petType=Rabbits"  },
-  { label: "Hamsters", image: "/07_category_hamsters.jpg", href: "/listings?petType=Hamsters" },
-  { label: "Reptiles", image: "/08_category_reptiles.jpg", href: "/listings?petType=Reptiles" },
-  { label: "Others",   image: "/09_category_others.jpg",   href: "/listings"                  },
-];
-
 const STEPS = [
   { num: "01", title: "Browse Listings",  desc: "Search verified pet listings by breed, age, location and more.", image: "/16_how_it_works_browse.jpg"     },
   { num: "02", title: "Connect Directly", desc: "Contact breeders and owners directly — no middlemen, no hidden fees.", image: "/17_how_it_works_connect.jpg" },
   { num: "03", title: "Bring Home Love",  desc: "Meet your new companion and give them a forever home.", image: "/18_how_it_works_bring_home.jpg" },
 ];
 
-const SERVICES = [
-  { title: "Veterinary",     desc: "Find trusted vets near you",              image: "/10_service_veterinary.jpg",     slug: "veterinary"     },
-  { title: "Grooming",       desc: "Professional grooming services",          image: "/11_service_grooming.jpg",       slug: "grooming"       },
-  { title: "Training",       desc: "Certified pet trainers",                  image: "/12_service_training.jpg",       slug: "training"       },
-  { title: "Boarding",       desc: "Safe & pet-friendly stays",               image: "/13_service_boarding.jpg",       slug: "boarding"       },
-  { title: "Photography",    desc: "Capture memorable moments",               image: "/14_service_photography.jpg",    slug: "photography"    },
-  { title: "Transportation", desc: "Safe and reliable pet relocation",        image: "/15_service_transportation.jpg", slug: "transportation" },
-];
+const SERVICE_META: Record<string, { title: string; desc: string; emoji: string; gradient: string }> = {
+  veterinary:     { title: "Veterinary",     desc: "Find trusted vets near you",         emoji: "🩺", gradient: "from-blue-500 to-blue-700"      },
+  grooming:       { title: "Grooming",       desc: "Professional grooming services",      emoji: "✂️", gradient: "from-pink-400 to-pink-600"      },
+  training:       { title: "Training",       desc: "Certified pet trainers",              emoji: "🎯", gradient: "from-amber-400 to-orange-500"   },
+  boarding:       { title: "Boarding",       desc: "Safe & pet-friendly stays",           emoji: "🏡", gradient: "from-teal-500 to-teal-700"      },
+  photography:    { title: "Photography",    desc: "Capture memorable moments",           emoji: "📸", gradient: "from-purple-500 to-purple-700"  },
+  transportation: { title: "Transportation", desc: "Safe and reliable pet relocation",    emoji: "🚐", gradient: "from-brand-green to-brand-green-dark" },
+  care:           { title: "Care",           desc: "Day care & wellness services",        emoji: "💚", gradient: "from-green-500 to-green-700"    },
+  supplies:       { title: "Supplies",       desc: "Food, toys & accessories",            emoji: "🛒", gradient: "from-indigo-400 to-indigo-600"  },
+  other:          { title: "Other",          desc: "More pet services near you",          emoji: "🐾", gradient: "from-slate-500 to-slate-700"    },
+};
 
 const WHY = [
   { icon: FaShieldAlt, title: "Verified Listings",  desc: "Every listing is manually reviewed before going live."         },
@@ -40,6 +32,37 @@ const WHY = [
   { icon: FaHeart,     title: "Ethical Adoption",   desc: "We promote responsible adoption and animal welfare."           },
   { icon: FaPhoneAlt,  title: "Direct Contact",     desc: "Talk to the owner directly — no agents in between."           },
 ];
+
+interface PetType {
+  _id: string; name: string; slug: string;
+  image?: { url: string }; icon?: string;
+}
+
+interface ServiceItem {
+  _id: string; category: string;
+}
+
+async function getPetTypes(): Promise<PetType[]> {
+  try {
+    const res = await fetch(`${API}/pet-types`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.petTypes || [];
+  } catch { return []; }
+}
+
+async function getServiceCounts(): Promise<Record<string, number>> {
+  try {
+    const res = await fetch(`${API}/services?limit=200`, { next: { revalidate: 1800 } });
+    if (!res.ok) return {};
+    const data = await res.json();
+    const counts: Record<string, number> = {};
+    (data.services || []).forEach((s: ServiceItem) => {
+      counts[s.category] = (counts[s.category] || 0) + 1;
+    });
+    return counts;
+  } catch { return {}; }
+}
 
 interface LiveListing {
   _id: string; slug: string; title: string;
@@ -123,9 +146,11 @@ function ListingCard({ listing }: { listing: LiveListing }) {
 }
 
 export default async function Home() {
-  const [featuredListings, stats] = await Promise.all([
+  const [featuredListings, stats, petTypes, serviceCounts] = await Promise.all([
     getFeaturedListings(),
     getSiteStats(),
+    getPetTypes(),
+    getServiceCounts(),
   ]);
 
   const statItems = [
@@ -191,23 +216,31 @@ export default async function Home() {
       </section>
 
       {/* ══ BROWSE BY PET TYPE ═══════════════════════════════════════════════ */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-extrabold text-brand-green mb-2">Browse by Pet Type</h2>
-          <p className="text-slate-500">Find the perfect companion that matches your lifestyle</p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-          {PET_TYPES.map(({ label, image, href }) => (
-            <Link key={label} href={href}
-              className="flex flex-col items-center gap-2.5 bg-white rounded-2xl border border-green-100 hover:border-brand-green hover:shadow-md transition-all group overflow-hidden text-center">
-              <div className="relative w-full h-20 overflow-hidden">
-                <Image src={image} alt={label} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
-              </div>
-              <span className="text-sm font-semibold text-slate-700 group-hover:text-brand-green transition-colors pb-3">{label}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {petTypes.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-brand-green mb-2">Browse by Pet Type</h2>
+            <p className="text-slate-500">Find the perfect companion that matches your lifestyle</p>
+          </div>
+          <div className={`grid gap-4 ${petTypes.length <= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-8"}`}>
+            {petTypes.map((pt) => (
+              <Link key={pt._id} href={`/listings?petType=${encodeURIComponent(pt.name)}`}
+                className="flex flex-col items-center gap-2.5 bg-white rounded-2xl border border-green-100 hover:border-brand-green hover:shadow-md transition-all group overflow-hidden text-center">
+                <div className="relative w-full h-20 overflow-hidden bg-brand-green-soft">
+                  {pt.image?.url ? (
+                    <Image src={pt.image.url} alt={pt.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl">
+                      {pt.icon || "🐾"}
+                    </div>
+                  )}
+                </div>
+                <span className="text-sm font-semibold text-slate-700 group-hover:text-brand-green transition-colors pb-3">{pt.name}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ══ FEATURED LISTINGS ════════════════════════════════════════════════ */}
       <section className="bg-white py-16">
@@ -276,35 +309,53 @@ export default async function Home() {
       </section>
 
       {/* ══ PET SERVICES ═════════════════════════════════════════════════════ */}
-      <section className="bg-gradient-to-br from-brand-green via-brand-green-mid to-brand-green-dark py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-extrabold text-white mb-2">Pet Services Near You</h2>
-            <p className="text-brand-green-muted">Everything your pet needs, all in one place</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {SERVICES.map(s => (
-              <Link key={s.title} href={`/services?category=${s.slug}`}
-                className="bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/30 rounded-2xl overflow-hidden transition-all group">
-                <div className="relative h-32 overflow-hidden">
-                  <Image src={s.image} alt={s.title} fill className="object-cover group-hover:scale-110 transition-transform duration-500 brightness-90" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <p className="absolute bottom-2 left-0 right-0 text-center text-white font-bold text-sm">{s.title}</p>
-                </div>
-                <div className="px-3 py-2.5">
-                  <p className="text-white/60 text-xs text-center">{s.desc}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Link href="/services"
-              className="inline-flex items-center gap-2 bg-white text-brand-green font-bold px-8 py-3.5 rounded-xl hover:bg-brand-green-soft transition-colors">
-              Browse All Services <FaArrowRight size={14} />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {(() => {
+        const activeCategories = Object.keys(SERVICE_META).filter(
+          cat => (serviceCounts[cat] || 0) > 0
+        );
+        const displayCategories = activeCategories.length >= 3
+          ? activeCategories
+          : Object.keys(SERVICE_META).slice(0, 6);
+        return (
+          <section className="bg-gradient-to-br from-brand-green via-brand-green-mid to-brand-green-dark py-16">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-extrabold text-white mb-2">Pet Services Near You</h2>
+                <p className="text-brand-green-muted">Everything your pet needs, all in one place</p>
+              </div>
+              <div className={`grid gap-4 ${displayCategories.length <= 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"}`}>
+                {displayCategories.map(cat => {
+                  const meta = SERVICE_META[cat];
+                  const count = serviceCounts[cat] || 0;
+                  return (
+                    <Link key={cat} href={`/services?category=${cat}`}
+                      className="bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/30 rounded-2xl overflow-hidden transition-all group">
+                      <div className={`relative h-32 flex flex-col items-center justify-center bg-gradient-to-br ${meta.gradient} group-hover:brightness-110 transition-all`}>
+                        <span className="text-4xl mb-1 drop-shadow">{meta.emoji}</span>
+                        <p className="text-white font-bold text-sm drop-shadow">{meta.title}</p>
+                        {count > 0 && (
+                          <span className="mt-1 text-[10px] font-semibold text-white/70 bg-black/20 px-2 py-0.5 rounded-full">
+                            {count} listing{count !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                      <div className="px-3 py-2.5">
+                        <p className="text-white/60 text-xs text-center">{meta.desc}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              <div className="text-center mt-10">
+                <Link href="/services"
+                  className="inline-flex items-center gap-2 bg-white text-brand-green font-bold px-8 py-3.5 rounded-xl hover:bg-brand-green-soft transition-colors">
+                  Browse All Services <FaArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ══ WHY OOTYDOGS ═════════════════════════════════════════════════════ */}
       <section className="max-w-7xl mx-auto px-6 py-16">
