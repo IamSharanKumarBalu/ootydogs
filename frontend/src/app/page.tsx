@@ -325,6 +325,50 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ══ PRICING ══════════════════════════════════════════════════════════ */}
+      <section className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Simple, Transparent Pricing</h2>
+          <p className="text-slate-500">Choose a plan and start listing your pets today</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { label: "Basic", price: "₹100", listings: "1 listing", validity: "30 days", highlight: false,
+              features: ["1 pet listing", "Visible for 30 days", "Photo upload", "Contact form"] },
+            { label: "Standard", price: "₹1,000", listings: "15 listings", validity: "1 year", highlight: true,
+              features: ["15 total listings", "Valid for 1 year", "Photo upload", "Priority listing"] },
+            { label: "Premium", price: "₹5,000", listings: "Unlimited", validity: "1 year", highlight: false,
+              features: ["Unlimited listings", "Valid for 1 year", "Photo upload", "Featured listings"] },
+          ].map(plan => (
+            <div key={plan.label}
+              className={`relative bg-white rounded-3xl border-2 p-7 flex flex-col shadow-sm ${plan.highlight ? "border-brand-green shadow-brand-green/10 shadow-lg" : "border-slate-200"}`}>
+              {plan.highlight && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-brand-green text-white text-xs font-bold rounded-full whitespace-nowrap">
+                  MOST POPULAR
+                </div>
+              )}
+              <h3 className="text-lg font-bold text-slate-900 mb-1">{plan.label}</h3>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-3xl font-extrabold text-slate-900">{plan.price}</span>
+              </div>
+              <p className="text-slate-400 text-sm mb-5">{plan.listings} · {plan.validity}</p>
+              <ul className="space-y-2.5 mb-7 flex-1">
+                {plan.features.map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="w-4 h-4 rounded-full bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0 text-[10px] font-bold">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/pricing"
+                className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all ${plan.highlight ? "bg-brand-green text-white hover:bg-brand-green-mid" : "bg-slate-900 text-white hover:bg-slate-700"}`}>
+                Get {plan.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ══ POST A PET CTA ═══════════════════════════════════════════════════ */}
       <section className="max-w-7xl mx-auto px-6 pb-16">
         <div className="rounded-3xl overflow-hidden shadow-xl shadow-green-900/20 grid grid-cols-1 lg:grid-cols-2 min-h-[280px]">

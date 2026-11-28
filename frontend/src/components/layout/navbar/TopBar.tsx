@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   FaSearch, FaUser, FaUserCircle, FaSignOutAlt,
-  FaHeart, FaListAlt, FaBars, FaTimes, FaPhone,
+  FaHeart, FaListAlt, FaBars, FaTimes, FaPhone, FaCreditCard,
 } from "react-icons/fa";
 import { useSession } from "@/lib/auth/client";
 import { useAuthMutation } from "@/hooks/auth/useAuthMutation";
@@ -88,6 +88,16 @@ export const TopBar = ({ editProfileManager }: { editProfileManager: Manager }) 
             className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-brand-green-soft transition-colors group">
             <FaHeart className="text-slate-400 group-hover:text-brand-red" size={16} />
             <span className="text-sm font-medium">Saved Pets</span>
+          </Link>
+          <Link href="/my/subscription" onClick={() => setShowDropdown(false)}
+            className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-brand-green-soft transition-colors group">
+            <FaCreditCard className="text-slate-400 group-hover:text-brand-green" size={16} />
+            <span className="text-sm font-medium">My Subscription</span>
+          </Link>
+          <Link href="/pricing" onClick={() => setShowDropdown(false)}
+            className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-brand-green-soft transition-colors group">
+            <span className="text-slate-400 group-hover:text-brand-green text-base leading-none">₹</span>
+            <span className="text-sm font-medium">View Plans</span>
           </Link>
           <div className="border-t border-slate-100 my-1" />
           <button
