@@ -79,12 +79,12 @@ export const TopBar = ({ editProfileManager }: { editProfileManager: Manager }) 
             <FaUserCircle className="text-slate-400 group-hover:text-brand-green" size={16} />
             <span className="text-sm font-medium">My Profile</span>
           </Link>
-          <Link href="/my/listings" onClick={() => setShowDropdown(false)}
+          <Link href="/profile?tab=listings" onClick={() => setShowDropdown(false)}
             className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-brand-green-soft transition-colors group">
             <FaListAlt className="text-slate-400 group-hover:text-brand-green" size={16} />
             <span className="text-sm font-medium">My Listings</span>
           </Link>
-          <Link href="/my/favourites" onClick={() => setShowDropdown(false)}
+          <Link href="/profile?tab=saved" onClick={() => setShowDropdown(false)}
             className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-brand-green-soft transition-colors group">
             <FaHeart className="text-slate-400 group-hover:text-brand-red" size={16} />
             <span className="text-sm font-medium">Saved Pets</span>
