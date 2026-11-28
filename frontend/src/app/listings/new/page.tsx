@@ -118,6 +118,12 @@ export default function NewListingPage() {
       if (d.success) {
         toast.success("Listing posted! It will go live once approved.");
         router.push("/profile?tab=listings");
+      } else if (d.message === "NO_PLAN") {
+        toast.error("You need an active plan to post a listing.");
+        router.push("/pricing");
+      } else if (d.message === "LIMIT_REACHED") {
+        toast.error("You've used all your listings. Upgrade your plan.");
+        router.push("/pricing");
       } else {
         toast.error(d.message || "Failed to post listing");
       }

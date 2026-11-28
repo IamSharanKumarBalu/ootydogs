@@ -1,6 +1,8 @@
 const PetListing = require('../models/petListingModel');
 const ListingImage = require('../models/listingImageModel');
 const ListingApproval = require('../models/listingApprovalModel');
+const Subscription = require('../models/subscriptionModel');
+const { PLANS } = require('../models/subscriptionModel');
 const asyncErrorHandler = require('../middlewares/asyncErrorHandler');
 const ErrorHandler = require('../utils/errorHandler');
 const slugify = require('../utils/slugify');
@@ -27,7 +29,7 @@ exports.getListings = asyncErrorHandler(async (req, res) => {
         vaccination, q, sort, page = 1, limit = 12,
     } = req.query;
 
-    const filter = { status: 'approved', isArchived: false };
+    const filter = { status: 'approved', isArchived: false, $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] };
     if (petType)    filter.petType = petType;
     if (breed)      filter.breed = breed;
     if (category)   filter.listingCategory = category;
@@ -142,6 +144,27 @@ exports.createListing = asyncErrorHandler(async (req, res, next) => {
         return next(new ErrorHandler('Title, pet type, breed and category are required', 400));
     }
 
+    // ── Subscription check ────────────────────────────────────────────────────
+    const sub = await Subscription.findOne({ user: req.user.id, status: 'active' }).sort({ createdAt: -1 });
+    if (!sub) {
+        return next(new ErrorHandler('NO_PLAN', 402));
+    }
+    if (new Date() > sub.validUntil) {
+        sub.status = 'expired';
+        await sub.save();
+        return next(new ErrorHandler('NO_PLAN', 402));
+    }
+    if (sub.listingsAllowed !== -1 && sub.listingsUsed >= sub.listingsAllowed) {
+        return next(new ErrorHandler('LIMIT_REACHED', 402));
+    }
+
+    // Determine listing expiry based on plan
+    const planConfig = PLANS[sub.plan];
+    const expiresAt = sub.plan === 'basic'
+        ? new Date(Date.now() + planConfig.validDays * 24 * 60 * 60 * 1000)
+        : sub.validUntil;
+    // ─────────────────────────────────────────────────────────────────────────
+
     const slug = await generateUniqueSlug(`${title}-${city || ''}`);
 
     const listing = await PetListing.create({
@@ -151,7 +174,12 @@ exports.createListing = asyncErrorHandler(async (req, res, next) => {
         owner: req.user.id,
         slug,
         status: 'pending',
+        expiresAt,
     });
+
+    // Increment subscription usage
+    sub.listingsUsed += 1;
+    await sub.save();
 
     // Handle image uploads
     if (images && images.length) {
